@@ -1,3 +1,7 @@
+//Q1. Write a program to reverse a singular linked list without using a second data structure.
+
+//Q2. Find if a given linked list is a palindrome or not.
+
 package com.Linklist;
 
 public class LinkedList {
