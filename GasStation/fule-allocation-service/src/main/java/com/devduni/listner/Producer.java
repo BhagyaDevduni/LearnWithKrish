@@ -13,7 +13,7 @@ public class Producer {
     @Autowired
     private KafkaTemplate<String,String> kafkaTemplate;
 
-        public void publishToTopic(Event message) {
+        public void toTopic(Event message) {
             System.out.println("publishing to :" + topic);
             Gson gson=new Gson();
             String newMessage=gson.toJson(message);
