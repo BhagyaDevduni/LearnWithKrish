@@ -1,22 +1,19 @@
 package com.devduni.listner;
 
 import com.devduni.event.Event;
+import com.devduni.model.Allocation;
+import com.devduni.model.FuelStock;
 import com.devduni.service.AllocationService;
 import com.devduni.service.FuelStockService;
 import com.google.gson.Gson;
-import com.manisha.entity.Allocation;
-import com.manisha.entity.Stock;
-import com.manisha.event.Event;
-import com.manisha.service.AllocateStockService;
-import com.manisha.service.StockService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
+@Slf4j
 @Service
 public class Consumer {
 
@@ -33,39 +30,34 @@ public class Consumer {
     @Autowired
     private ScheduleProducer scheduleProducer;
 
-    @KafkaListener(topics = "order-topic", groupId = "FuelOrder-group")
-
+    @KafkaListener(topics = "Fuel-order", groupId = "FuelOrder-group")
     public void read(String message) {
         Event event = new Gson().fromJson(message, Event.class);
-        if (event.getType().equals("CreateNewOrder")) {
-            Optional<Stock> stock = stockService.get(Integer.parseInt(event.getStockid()));
+        if (event.getStatus().equals("Place-new-fuel-order")) {
+            Optional<FuelStock> fuelStock = stockService.getFuelStock(Integer.parseInt(event.getStockId()));
 
-            if (stock.isPresent()) {
-                double orderQty = Double.parseDouble(event.getFuelQty());
-                double availableQty = stock.get().getAvailableStock();
-                if (availableQty >= orderQty) {
-                    if (availableQty >= allocateStockService.allocatedFuelOrder() + orderQty) {
-
+            if (fuelStock.isPresent()) {
+                double orderFuelQty = Double.parseDouble(event.getQty());
+                double availableFuelQty = fuelStock.get().getAvailableStockQty();
+                if (availableFuelQty >= orderFuelQty) {
+                    if (availableFuelQty >= allocationService.allocatedFuelStock() + orderFuelQty) ;{
 
                         Allocation allocation = new Allocation();
-                        allocation.setId(Integer.parseInt(event.getOrderid()));
-                        allocation.setFuelQty(Double.parseDouble(event.getFuelQty()));
-                        allocation.setStockId(event.getStockid());
-                        allocateStockService.save(allocation);
-                        logger.info("ALLOCATION SUCCESSFUL");
+                        allocation.setAllocationId(Integer.parseInt(event.getOrderId()));
+                        allocation.setQty(Double.parseDouble(event.getQty()));
+                        allocation.setStockId(event.getStockId());
+                        allocationService.save(allocation);
+                        log.info("Successfully saved");
 
-                        producer.publish(new Event("Allocation_service", "Allocation_Complete", event.getUniqueId(), event.getFuelQty(), event.getOrderid(), event.getStockid(), "SUCCESSFUL"));
-                        scheduleProducer.publish(new Event("Allocation_service", "Allocation_Complete", event.getUniqueId(), event.getFuelQty(), event.getOrderid(), event.getStockid(), "SUCCESSFUL"));
-                    } else {
-                        logger.info("NO STOCK AVAILABLE");
+                        producer.toTopic(new Event("Allocation_service", "complete_allocation", event.getOrderId(), event.getStockId(), event.getKey(), event.getQty(), "SUCCESSFUL"));
+                        scheduleProducer.toTopic(new Event("Allocation_service", "Allocation_Complete", event.getOrderId(), event.getStockId(), event.getKey(), event.getQty(), "SUCCESSFUL"));
                     }
+                } else {
 
+                    log.info("No Stock Available");
                 }
-
-
             }
-
-
         }
+
     }
 }
