@@ -32,9 +32,8 @@ public class FuelStockController {
             FuelStockModel stockModel = new FuelStockModel();
             stockModel.setStockId(stock.getStockId());
             stockModel.setFuelType(stock.getFuelType());
-            stockModel.setStockQty(stock.getStockQty());
+            stockModel.setStockQty(stock.getAvailableStockQty());
             fuelStockList.add(stockModel);
         }
         return fuelStockList;
     }
-}
